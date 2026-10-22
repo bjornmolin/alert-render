@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# Triggered by pushing a `release-request/vX.Y.Z` tag, from which the
+# orchestrator derives the real `vX.Y.Z`. It builds the container, signs it with
+# Sigstore, attaches SLSA provenance, scans it, and emits a CycloneDX SBOM from
+# Cargo.lock.
+#
+# PINNED TO THE SAME v0.90.0 AS THE PULL-REQUEST GATE, and for the same reason:
+# v0.91.0 is tagged but v0.90.0 is the latest release, and the orchestrator's
+# own binary and runtime-image defaults are v0.90.0. Move both pins together, in
+# their own commit.
+#   v0.90.0 = 5f5bb1ee7ad706d7bca89695e485898204ef730c
+#
+# SECRETS THIS NEEDS AND THE REPOSITORY DOES NOT HAVE YET. None of them can be
+# set by anyone but the maintainer, so the first release will fail on whichever
+# is missing rather than silently producing something unsigned:
+#   RELEASE_TOKEN            push and release creation
+#   RELEASE_GPG_*            signs the release commit and tag
+#   CODE_SCANNING_TOKEN      optional; uploads the container scan to Code Scanning
+name: release
+
+on:
+  push:
+    tags:
+      - "release-request/v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    uses: diggsweden/forge-ci/.github/workflows/release-orchestrator.yml@5f5bb1ee7ad706d7bca89695e485898204ef730c # v0.90.0
+    permissions:
+      contents: write
+      packages: write
+      # Sigstore keyless signing and SLSA provenance both need this.
+      id-token: write
+      actions: read
+      security-events: write
+    secrets:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      RELEASE_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
+      RELEASE_GPG_PASSPHRASE: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
+      RELEASE_GPG_PUBLIC_KEY: ${{ secrets.RELEASE_GPG_PUBLIC_KEY }}
+      CODE_SCANNING_TOKEN: ${{ secrets.CODE_SCANNING_TOKEN }}
+    with:
+      branch: main
+      forge-ci-binary-ref: v0.90.0
+      artifacts-config: .forge-ci/artifacts.yml
+      changelog-creator: git-cliff
+      release-publisher: github-cli

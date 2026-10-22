@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# What a release produces. Shape taken from forge-ci's own
+# examples/cargo-app/artifacts.yml rather than guessed at.
+#
+# CONTAINER-FIRST: the Containerfile IS the build environment. `cargo build`
+# runs inside it, so a release does not depend on a runner having the right
+# toolchain -- rust-toolchain.toml is honoured in the builder stage the same way
+# it is locally.
+
+sign:
+  method: sigstore
+
+artifacts:
+  - name: alert-render
+    project-type: cargo
+    config:
+      build-mode: container-first
+
+containers:
+  - name: alert-render
+    from: [alert-render]
+    container-file: Containerfile
+    # The whole workspace: the builder stage copies it, because the binary is
+    # the composition root of eight crates and `COPY crates/app` alone would
+    # not compile.
+    context: .
+    target: runtime
+    # BOTH, and the dev cluster is why. Production OpenShift is amd64; the
+    # development k3s runs in Lima on an arm64 Mac, where an amd64-only image
+    # fails with `exec format error` -- which wallet-iac-k3s has already paid
+    # for once with another image.
+    platforms: linux/amd64,linux/arm64

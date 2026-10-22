@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# Keep the build context small and the layer cache useful. `target/` is the
+# important one: it is gigabytes and belongs to the host's toolchain, not the
+# builder's.
+target/
+.git/
+.beads/
+.agents/
+.codex/
+.cursor/

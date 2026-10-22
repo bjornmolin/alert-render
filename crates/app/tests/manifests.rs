@@ -338,4 +338,18 @@ fn the_example_templates_render_a_notification() {
     // Both alerts in both bodies.
     assert!(message.text().contains("DiskFull"), "{}", message.text());
     assert!(message.text().contains("CpuHot"), "{}", message.text());
+
+    // HTML COLLAPSES NEWLINES, and an earlier version of team.html used them --
+    // so one alert rendered as a single run-on line in a room. Caught by
+    // looking at a real delivery rather than by a test, which is why there is
+    // now a test. It is the same mistake webhook-proxy records in gc-qev, where
+    // hookshot collapsed the newlines it was sent.
+    assert!(
+        message.html().contains("<br>"),
+        "the html body has no line breaks: {}",
+        message.html()
+    );
+    // And the text body is the opposite: real newlines, no markup.
+    assert!(message.text().contains('\n'), "{}", message.text());
+    assert!(!message.text().contains("<br>"), "{}", message.text());
 }

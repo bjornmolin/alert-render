@@ -1,10 +1,15 @@
 {#-
 SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
 SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+
+HTML COLLAPSES NEWLINES, so the line breaks here are <br> and not newlines.
+An earlier version of this file used real newlines and rendered as one run-on
+line in a room -- which is the same mistake webhook-proxy records in its bead
+gc-qev, where hookshot collapsed the newlines it was sent. The .txt companion
+is the opposite: real newlines there, because it is plain text.
 -#}
 {%- for alert in notification.alerts -%}
-<b>{{ alert.labels.alertname | default("alert") }}</b>
-{{ alert.annotations.summary | default("no summary") }}
-({{ alert.state }}, severity {{ alert.labels.severity | default("none") }})
+<b>{{ alert.labels.alertname | default("alert") }}</b>: {{ alert.annotations.summary | default("no summary") }}<br>
+&nbsp;&nbsp;{{ alert.state }}, severity {{ alert.labels.severity | default("none") }}
 {%- if not loop.last %}<br>{% endif -%}
 {%- endfor -%}

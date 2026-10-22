@@ -338,6 +338,7 @@ dependencies = [
  "reqwest",
  "serde_json",
  "tokio",
+ "webpki-roots",
 ]
 
 [[package]]

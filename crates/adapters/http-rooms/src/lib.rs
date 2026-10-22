@@ -446,3 +446,65 @@ Connection: close
         assert_eq!(stub.hits.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 }
+
+#[cfg(test)]
+mod trust {
+    //! What the compiled-in trust store has to contain.
+    //!
+    //! reqwest is built here with `rustls-tls`, which means `webpki-roots`:
+    //! the PUBLIC root store, compiled into the binary. The image therefore
+    //! needs no `ca-certificates` layer -- and, as the other side of the same
+    //! coin, a certificate from a private CA cannot be trusted by mounting
+    //! anything.
+    //!
+    //! MEASURED AGAINST THE REAL CHAT SERVER, 2026-10-22, from a pod in the
+    //! production cluster, because walladm01 cannot reach it:
+    //!
+    //!   0 s:C=SE, L=HÄGERSTEN, O=Försäkringskassan, CN=*.digg.safos.se
+    //!     i:C=SE, O=Telia Company AB, CN=Telia RSA OV CA v4
+    //!   1 i:C=SE, O=Telia Company AB, CN=Telia RSA TLS Root CA v3
+    //!   2 i:C=FI, O=Telia Finland Oyj, CN=Telia Root CA v2
+    //!   3 s:C=FI, O=Telia Finland Oyj, CN=Telia Root CA v2   (self-signed)
+    //!   Verify return code: 0 (ok)
+    //!
+    //! So it is a public commercial CA and nothing special is needed. The risk
+    //! that remains is not ours to control: a root can be REMOVED from
+    //! webpki-roots, and the symptom would be every delivery failing as
+    //! `Unreachable` with no clue that trust was the cause.
+
+    /// The root the chain above terminates at.
+    const REQUIRED_ROOT: &str = "Telia Root CA v2";
+
+    #[test]
+    fn the_root_the_chat_server_chains_to_is_in_the_compiled_in_store() {
+        let needle = REQUIRED_ROOT.as_bytes();
+        let present = webpki_roots::TLS_SERVER_ROOTS.iter().any(|anchor| {
+            anchor
+                .subject
+                .as_ref()
+                .windows(needle.len())
+                .any(|window| window == needle)
+        });
+
+        assert!(
+            present,
+            "`{REQUIRED_ROOT}` is no longer in webpki-roots, so deliveries to \
+             the chat server would fail TLS -- and the failure arrives as \
+             DeliveryFailure::Unreachable, which reads as a network problem. \
+             Either the root was removed upstream, in which case the chat \
+             server's certificate needs checking again, or the server has been \
+             reissued under a different CA."
+        );
+    }
+
+    /// A guard on the guard: if the store were empty or tiny the test above
+    /// would pass vacuously on a bad build.
+    #[test]
+    fn the_compiled_in_store_is_populated() {
+        assert!(
+            webpki_roots::TLS_SERVER_ROOTS.len() > 50,
+            "only {} roots compiled in -- the trust store looks wrong",
+            webpki_roots::TLS_SERVER_ROOTS.len()
+        );
+    }
+}

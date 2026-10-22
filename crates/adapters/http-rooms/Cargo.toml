@@ -23,6 +23,13 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 serde_json = "1"
 
 [dev-dependencies]
+# A GUARD, not a dependency of the code. reqwest compiles webpki-roots in as the
+# trust store, and the chat server's certificate chains to one specific root in
+# that list -- so a future release dropping it would break every delivery with a
+# TLS error reported as "nothing answered". The test below asserts it is there.
+# Cargo unifies this with reqwest's own 1.x, so the version under test is the
+# version in use.
+webpki-roots = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
 
 [lints]

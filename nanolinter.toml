@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# The verify plan forge-ci's lint gate runs. `nanolinter explain --all` lists
+# every available check.
+#
+# THIS FILE REPLACES THREE LOCAL CONFIGS, which is why it is here rather than a
+# .gommitlint.yaml, a .rumdl.toml and a .mise.toml to drive them:
+# diggsweden/open-source-project-template carries all three because it predates
+# this mechanism, and nanolinter runs the same tools from a container with its
+# own pinned toolchain. One declaration beats three configs plus the tool
+# versions to keep them running.
+
+[detect]
+auto = true
+
+[verify]
+checks = [
+  "secrets",
+  "sast",
+  "commits",
+  "yaml",
+  "markdown",
+  "shell",
+  "toml",
+]
+
+[policy]
+block = [
+  "secrets",
+  "sast",
+  "commits",
+  "yaml",
+  "markdown",
+  "shell",
+  "toml",
+]
+
+# ── WHY rust-clippy AND rust-format ARE NOT HERE ────────────────────────────
+#
+# forge-ci's own examples/cargo-app/nanolinter.toml lists both, so leaving them
+# out is a deliberate departure from Digg's recommendation for a cargo project.
+#
+# The reason is the toolchain. rust-toolchain.toml pins 1.95.0, and this
+# workspace sets clippy::pedantic to warn while CI runs `-D warnings`. Pedantic
+# lints are added and changed between Rust releases. If nanolinter's container
+# runs a different rustc than the pin, a pull request can fail on a lint that
+# does not exist in the toolchain a developer has -- and a CI failure nobody can
+# reproduce locally is the worst kind.
+#
+# `just check` already runs cargo fmt --check, clippy and the whole test suite
+# on the pinned toolchain, as its own job in .github/workflows/pr.yml. So the
+# Rust checks are covered once, on the version this repository actually names.
+#
+# ADD THEM IF the container turns out to honour rust-toolchain.toml -- then the
+# duplication is harmless and belt-and-braces is free. That is a thing to
+# measure on a real run, not to assume in either direction.

@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+
+# Normalise line endings in the repository, whatever a contributor's platform
+# does in their working tree. Without this a CRLF checkout turns every file into
+# a diff, and `cargo fmt --check` fails for a reason that has nothing to do with
+# formatting.
+* text=auto eol=lf
+
+# The licence texts are normative and not ours to reformat.
+LICENSES/** -text -diff linguist-vendored
+
+# Lock files are generated: readable in a diff, but not what a reviewer is
+# reviewing, and not what GitHub should count as the language of this project.
+Cargo.lock linguist-generated=true -diff

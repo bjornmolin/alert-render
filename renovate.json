@@ -1,0 +1,27 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "description": "Group the Rust dependencies so one pull request moves the lockfile once rather than several fighting over it.",
+      "matchManagers": ["cargo"],
+      "groupName": "rust dependencies"
+    },
+    {
+      "description": "forge-ci and the actions are pinned to a tag's full commit SHA on purpose, and moving one is an explicit decision. Renovate may propose it; it may not batch it with anything else.",
+      "matchManagers": ["github-actions"],
+      "groupName": "ci",
+      "automerge": false
+    },
+    {
+      "description": "The Rust toolchain is pinned in rust-toolchain.toml and a bump changes which clippy lints exist, so it is never automatic.",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["rust"],
+      "enabled": false
+    }
+  ]
+}

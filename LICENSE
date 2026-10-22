@@ -1,0 +1,15 @@
+SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+
+alert-render is dual-licensed. You may use it under EITHER
+
+  - the European Union Public Licence v. 1.2, or
+  - the GNU General Public License, version 3 or any later version,
+
+at your option. The full texts are in LICENSES/EUPL-1.2.txt and
+LICENSES/GPL-3.0-or-later.txt.
+
+Per-file copyright and licensing is declared in each file's SPDX headers and in
+REUSE.toml, following the REUSE specification -- those are authoritative. This
+file exists because it is where a human and a forge's licence detector look
+first, and because a dual licence cannot be stated by a single licence text.

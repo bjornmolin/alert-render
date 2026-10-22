@@ -3,8 +3,10 @@ SPDX-PackageName = "alert-render"
 SPDX-PackageSupplier = "Digg - Agency for Digital Government"
 SPDX-PackageDownloadLocation = "https://github.com/bjornmolin/alert-render"
 
+# Files that cannot carry a comment header. renovate.json is strict JSON, and
+# the lock file is generated.
 [[annotations]]
-path = ["Cargo.lock", ".gitignore", "rust-toolchain.toml"]
+path = ["Cargo.lock", ".gitignore", "rust-toolchain.toml", "renovate.json"]
 SPDX-FileCopyrightText = "2026 Digg - Agency for Digital Government"
 SPDX-License-Identifier = "EUPL-1.2 OR GPL-3.0-or-later"
 

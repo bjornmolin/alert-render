@@ -14,6 +14,8 @@ pub enum MalformedBinding {
     EmptyTemplateId,
     /// The Room key was empty or only whitespace.
     EmptyRoomKey,
+    /// The Room key is an address, so a credential has been put in the config.
+    RoomKeyLooksLikeAnAddress,
 }
 
 /// Paths this service answers itself, which a Binding may not claim.
@@ -46,6 +48,11 @@ impl Binding {
     /// [`MalformedBinding::EmptyRoomKey`] for a missing or whitespace-only
     /// Template or Room key -- a path that would accept a Notification and have
     /// nowhere to put it.
+    ///
+    /// [`MalformedBinding::RoomKeyLooksLikeAnAddress`] if the Room key is an
+    /// `http://` or `https://` address -- the mirror of [`crate::room::Room`]
+    /// refusing a value that is not one. The key is safe to commit; the address
+    /// is a credential and this file is in gitops.
     pub fn new(listener: &str, template: &str, room: &str) -> Result<Self, MalformedBinding> {
         if !listener.starts_with('/') {
             return Err(MalformedBinding::PathNotAbsolute);
@@ -56,8 +63,17 @@ impl Binding {
         if template.trim().is_empty() {
             return Err(MalformedBinding::EmptyTemplateId);
         }
-        if room.trim().is_empty() {
+        let room = room.trim();
+        if room.is_empty() {
             return Err(MalformedBinding::EmptyRoomKey);
+        }
+        // THE CREDENTIAL MUST NOT BE IN THE CONFIG. This field names a secret
+        // key whose value is mounted separately; an address here means the
+        // address itself has been written into a ConfigMap in a gitops
+        // repository. Caught at construction, because by the time a delivery
+        // fails with "no such key" the address is already committed.
+        if room.starts_with("http://") || room.starts_with("https://") {
+            return Err(MalformedBinding::RoomKeyLooksLikeAnAddress);
         }
         Ok(Self {
             listener: listener.to_owned(),
@@ -208,6 +224,34 @@ mod tests {
         assert!(bindings.for_listener("/notify").is_none());
         assert!(bindings.for_listener("/notify/team/").is_none());
         assert!(bindings.for_listener("/").is_none());
+    }
+
+    /// THE MISTAKE THE KEY INDIRECTION EXISTS TO PREVENT, caught where it is
+    /// made. The `room` field names a secret key; the value lives in a mounted
+    /// secret. A tenant who pastes the ADDRESS here instead has put a
+    /// credential into a `ConfigMap` in a gitops repository -- published into git
+    /// history and into `kubectl get cm -o yaml` for anyone with read on the
+    /// namespace.
+    ///
+    /// Without this rule the symptom is a "no such key" at the first delivery:
+    /// far from the cause, and by then the address is already committed. The
+    /// mirror of `Room::new` refusing a value that is NOT an address.
+    #[test]
+    fn a_room_key_that_is_actually_an_address_is_refused() {
+        for pasted in [
+            "https://hookshot.example.invalid/0191a7c2-SECRET",
+            "http://stub-hookshot.webhook-proxy.svc:8080/h/r",
+        ] {
+            assert_eq!(
+                Binding::new("/notify/x", "t", pasted),
+                Err(MalformedBinding::RoomKeyLooksLikeAnAddress),
+                "{pasted} was accepted as a key"
+            );
+        }
+
+        // An ordinary key still works, including one with punctuation.
+        assert!(Binding::new("/notify/x", "t", "team-room-url").is_ok());
+        assert!(Binding::new("/notify/x", "t", "oncall.room_url").is_ok());
     }
 
     /// THE RULE THE SET EXISTS FOR. Two Bindings on one path would mean alerts

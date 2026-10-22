@@ -39,6 +39,15 @@ pub enum DeliveryFailure {
     Unreachable,
     /// Something accepted the connection and then did not answer.
     TimedOut,
+    /// Where to send it could not be determined at all.
+    ///
+    /// ADDED LATER, by the adapter that needed it (ar-1kx.5). The four cases
+    /// above are all answers from a Room; this one is the absence of a Room --
+    /// a Binding naming a key the deployment does not mount, or a mounted value
+    /// that is not an address. It is a configuration fault rather than a
+    /// network one, and conflating it with `Unreachable` would send whoever is
+    /// holding the pager to look at the network.
+    Unaddressable,
 }
 
 /// Hands a Message to a Room.

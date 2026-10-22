@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+[package]
+name = "alertmanager-payload"
+version.workspace = true
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+domain = { path = "../../domain" }
+serde_json = "1"
+thiserror = "2"
+
+[lints]
+workspace = true

@@ -65,6 +65,34 @@ so it is in the same category as a request body, not in the same category as
 source code. *Not* an Alertmanager template: those are Go `text/template` and
 apply to Alertmanager's own receivers, which do not include webhooks.
 
+**Two files per Binding**, `<id>.html` and `<id>.txt`. The html body is escaped
+and the text body is not — escaping plain text would show `&lt;` to a reader
+whose client prefers that field — and minijinja selects auto-escaping by
+template name, so the choice cannot be forgotten per call.
+
+**What it may read is a contract** (`ar-1kx.3`), deliberately narrower than the
+domain so the inside stays free to move:
+
+```
+notification.count
+notification.alerts[].state         "firing" | "resolved", for printing
+notification.alerts[].firing        boolean, for branching
+notification.alerts[].labels.<name>
+notification.alerts[].annotations.<name>
+```
+
+Not the raw JSON, not Alertmanager's `groupLabels`/`receiver`/`externalURL`
+(this service does not parse them), not the **Room** or the **Binding** — a
+template that could read the room key could print it, and the key names a
+credential — and nothing with an effect, which is also what makes rendering
+deterministic. Adding a field is free; removing or renaming one breaks tenants'
+templates and needs a deprecation.
+
+A typo in an attribute name must **fail**, not render empty: a blank reaches a
+room looking like an alert with no severity, and nobody investigates that. The
+consequence is that a genuinely optional label needs an explicit default in the
+template, which is the author saying out loud what absence means.
+
 ## Message
 
 The `{html, text}` pair a **Room** receives.
@@ -136,6 +164,12 @@ whole credential and this configuration is a `ConfigMap` in a gitops repository
 — a URI in it would be published into git history and into `kubectl get cm -o
 yaml` for anyone with read on the namespace. The key is safe to commit; the
 value is read from the mounted secret directory.
+
+**And a key that is an address is refused** (`MalformedBinding::RoomKeyLooksLikeAnAddress`),
+the mirror of **Room** refusing a value that is not one. Without that rule,
+pasting the address into this field produces a "no such key" at the first
+delivery — a long way from the cause, and by then the credential is already
+committed.
 
 **Bindings** is a type, not a `Vec`, because the rule that matters is about the
 collection: two Bindings on one listener path is ambiguous, and whichever won
@@ -238,7 +272,21 @@ A Room accepted a Message, judged by that Room's own success predicate.
 **Not simply 2xx.** A hookshot answers `{"ok":true}`; an inspector or a web
 application firewall may answer `200` with a body of its own, which looks
 exactly like success and is not. The predicate is per-destination for that
-reason (webhook-proxy's bead `gc-wlx` is where this was first measured).
+reason (webhook-proxy's bead `gc-wlx` is where this was first measured) — a
+global one would force the dev cluster to be lax, because a webhook inspector
+*cannot* be made to answer `{"ok":true}`, and dev would then prove a laxness
+production does not have.
+
+**A redirect is never followed.** With redirects off a `3xx` is `Refused`, which
+is the Room telling us to go somewhere we will not go. The address is the whole
+credential and the body is the tenant's alert text, so a redirect to another
+host would send both somewhere nobody configured — and following redirects is
+the default in most HTTP clients, so it is set deliberately and asserted by a
+test that checks the *target was never contacted*.
+
+**And a Room that cannot be resolved is `Unaddressable`**, not `Unreachable`.
+A Binding naming an unmounted key is a configuration fault; calling it
+unreachable sends whoever is paged to look at the network.
 
 ## Sanitising
 
@@ -257,6 +305,14 @@ and the bead was wrong: ZWJ is what holds an emoji sequence together, so
 stripping it turns one glyph into three, and both joiners carry meaning in Indic
 and Arabic scripts. Their abuse potential is weaker too -- a joiner cannot hide
 a word boundary in Latin text, which is precisely what U+200B does.
+
+**Applied to the output, not the input** (`ar-1kx.3`), and to both paths. The
+input is the obvious choice and misses two things: a **Template** is untrusted
+too, so an override written into a template literal passes straight through; and
+the **Fallback** never goes through a template at all, which would leave the one
+path that runs when everything else failed as the one path unsanitised. Editing
+rendered output is safe because none of what is removed has a legitimate place
+in HTML or in text meant for a human.
 
 **Not escaping non-ASCII.** `å`, `ä`, `ö`, `é` and CJK must survive untouched —
 this is a Swedish public-sector service and a blunt "escape everything above

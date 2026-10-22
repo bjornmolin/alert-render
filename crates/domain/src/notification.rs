@@ -21,24 +21,41 @@ pub enum AlertState {
 struct Pairs(BTreeMap<String, String>);
 
 impl Pairs {
-    /// The value for `name`, or `None` if it was never set -- or was set to
-    /// nothing, which Prometheus treats as the same thing.
-    fn get(&self, name: &str) -> Option<&str> {
+    /// Every name and value that is PRESENT.
+    ///
+    /// A value set to the empty string is not present -- Prometheus's own rule,
+    /// since a matcher of `{foo=""}` matches series with no `foo` at all. The
+    /// filter lives here, once, and `get` is defined in terms of this: two
+    /// predicates that had to stay in step would eventually not, and the
+    /// symptom would be one Alert described two ways inside one message.
+    fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
         self.0
-            .get(name)
-            .map(String::as_str)
-            .filter(|value| !value.is_empty())
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.as_str()))
+            .filter(|(_, value)| !value.is_empty())
+    }
+
+    /// The value for `name`, or `None` if it was never set -- or was set to
+    /// nothing.
+    fn get(&self, name: &str) -> Option<&str> {
+        self.iter().find(|(key, _)| *key == name).map(|(_, v)| v)
     }
 }
 
-impl<const N: usize> From<[(&str, &str); N]> for Pairs {
-    fn from(pairs: [(&str, &str); N]) -> Self {
+impl<'a> FromIterator<(&'a str, &'a str)> for Pairs {
+    fn from_iter<I: IntoIterator<Item = (&'a str, &'a str)>>(pairs: I) -> Self {
         Self(
             pairs
                 .into_iter()
                 .map(|(name, value)| (name.to_owned(), value.to_owned()))
                 .collect(),
         )
+    }
+}
+
+impl<const N: usize> From<[(&str, &str); N]> for Pairs {
+    fn from(pairs: [(&str, &str); N]) -> Self {
+        pairs.into_iter().collect()
     }
 }
 
@@ -61,6 +78,22 @@ impl Labels {
     }
 }
 
+impl Labels {
+    /// Every name and value that is present.
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.0.iter()
+    }
+
+    /// From however many pairs arrived at runtime.
+    ///
+    /// The array form cannot serve a wire format -- `From<[_; N]>` needs a
+    /// length known at compile time. The rule about absence holds here too: a
+    /// pair with an empty value is the same as a name nobody set.
+    pub fn from_pairs<'a>(pairs: impl IntoIterator<Item = (&'a str, &'a str)>) -> Self {
+        Self(pairs.into_iter().collect())
+    }
+}
+
 impl<const N: usize> From<[(&str, &str); N]> for Labels {
     fn from(pairs: [(&str, &str); N]) -> Self {
         Self(Pairs::from(pairs))
@@ -77,6 +110,22 @@ impl Annotations {
     #[must_use]
     pub fn get(&self, name: &str) -> Option<&str> {
         self.0.get(name)
+    }
+}
+
+impl Annotations {
+    /// Every name and value that is present.
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.0.iter()
+    }
+
+    /// From however many pairs arrived at runtime.
+    ///
+    /// The array form cannot serve a wire format -- `From<[_; N]>` needs a
+    /// length known at compile time. The rule about absence holds here too: a
+    /// pair with an empty value is the same as a name nobody set.
+    pub fn from_pairs<'a>(pairs: impl IntoIterator<Item = (&'a str, &'a str)>) -> Self {
+        Self(pairs.into_iter().collect())
     }
 }
 
@@ -185,6 +234,52 @@ mod tests {
         Alert, AlertState, Annotations, Labels, MalformedNotification, Notification,
         UnknownAlertState,
     };
+
+    /// A RUNTIME CONSTRUCTOR, which the array form is not: `From<[_; N]>` needs
+    /// a length known at compile time, so a wire format with however many
+    /// labels arrived cannot use it. The rule about absence has to hold here
+    /// too -- a parser handing over `("team", "")` must produce the same thing
+    /// as a label nobody set.
+    #[test]
+    fn labels_built_from_pairs_at_runtime_follow_the_same_rules() {
+        let gathered: Vec<(&str, &str)> = vec![("severity", "critical"), ("team", "")];
+
+        let labels = Labels::from_pairs(gathered.clone());
+        assert_eq!(labels.get("severity"), Some("critical"));
+        assert_eq!(labels.get("team"), None);
+        assert_eq!(labels.iter().count(), 1);
+
+        let annotations = Annotations::from_pairs(gathered);
+        assert_eq!(annotations.get("severity"), Some("critical"));
+        assert_eq!(annotations.get("team"), None);
+    }
+
+    /// ITERATION MUST AGREE WITH `get`, which is the whole reason this has a
+    /// test of its own. `get` treats a value set to the empty string as absent
+    /// (Prometheus's rule). If iteration did not, a template reading
+    /// `alert.labels.severity` would find nothing while a template looping over
+    /// the labels would print `severity:` with no value -- two views of one
+    /// Alert disagreeing, inside one message.
+    #[test]
+    fn iterating_labels_agrees_with_get_about_what_is_absent() {
+        let labels = Labels::from([("severity", "critical"), ("team", ""), ("ns", "wallet")]);
+
+        let mut seen: Vec<(&str, &str)> = labels.iter().collect();
+        seen.sort_unstable();
+        assert_eq!(seen, vec![("ns", "wallet"), ("severity", "critical")]);
+
+        for (name, value) in labels.iter() {
+            assert_eq!(
+                labels.get(name),
+                Some(value),
+                "iter and get disagree on {name}"
+            );
+        }
+        assert_eq!(labels.get("team"), None);
+
+        let annotations = Annotations::from([("summary", "x"), ("description", "")]);
+        assert_eq!(annotations.iter().count(), 1);
+    }
 
     /// PROMETHEUS'S OWN RULE, not an invention of ours: a label with an empty
     /// value is equivalent to the label not being there. In `PromQL`, a matcher

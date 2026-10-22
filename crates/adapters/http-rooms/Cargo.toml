@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+[package]
+name = "http-rooms"
+version.workspace = true
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+domain = { path = "../../domain" }
+application = { path = "../../application" }
+async-trait = "0.1"
+# default-features off: the defaults bring a native TLS stack and a charset
+# layer this does not use. rustls-tls is what a room on https needs, and
+# nothing else here is optional.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# The acceptance predicate is about a JSON body, so it is parsed rather than
+# substring-matched: `{ "ok" : true }` with whitespace is the same answer, and
+# a substring check that happened to work would be a trap for whoever next
+# wrote a room stub.
+serde_json = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
+
+[lints]
+workspace = true

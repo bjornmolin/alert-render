@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+[package]
+name = "yaml-bindings"
+version.workspace = true
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+domain = { path = "../../domain" }
+serde = { version = "1", features = ["derive"] }
+# serde_yaml was archived in 2024. serde_yaml_ng is its maintained continuation
+# with the same API, and it is what motrice/webhook-proxy uses for the same job
+# -- two repositories disagreeing about which YAML reader is authoritative
+# would be a trap, because the file is meant to be reviewable by a human who
+# reads both.
+serde_yaml_ng = "0.10"
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

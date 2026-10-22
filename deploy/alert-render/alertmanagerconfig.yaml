@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# THE TENANT'S OWN ROUTING, in the tenant's own repository -- which works
+# because the Prometheus Operator STAMPS a `namespace=<tenant>` matcher onto
+# every route it merges. Measured in wallet-iac-k3s 2026-10-21: the generated
+# Alertmanager configuration carried `matchers: - namespace="wallet-lab-prod"`
+# on a route that had not asked for one. That is what makes this safe to
+# delegate: a tenant cannot route another tenant's alerts, and the receiver
+# names are auto-namespaced so two tenants cannot collide.
+#
+# Needs `alertmanagerConfigSelector` on the Alertmanager. In wallet-iac-k3s both
+# selectors are already `{}`, which matches everything. On OpenShift
+# user-workload monitoring it needs `enableUserAlertmanagerConfig`.
+#
+# EACH webhook URL IS A BINDING'S LISTENER PATH, and the two are written in two
+# files that nothing cross-checks. A receiver with no binding gets a 404 that
+# Alertmanager retries for ever; a binding with no receiver is simply never
+# posted to, which looks exactly like "no alerts fired". Bead ar-1kx.1 is about
+# making the second one visible.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: alert-render
+spec:
+  route:
+    receiver: alert-render-warning
+    groupBy: [alertname, namespace]
+    groupWait: 30s
+    groupInterval: 5m
+    # HOW OFTEN A ROOM HEARS ABOUT AN ALERT THAT IS STILL FIRING is decided
+    # HERE and nowhere else -- this service forwards everything it is sent and
+    # suppresses nothing. 4h means two messages over a six-hour incident;
+    # 5m means about seventy.
+    repeatInterval: 4h
+    routes:
+      - receiver: alert-render-critical
+        matchers:
+          - name: severity
+            value: critical
+        # Critical alerts stop here rather than also matching the parent.
+        continue: false
+  receivers:
+    - name: alert-render-critical
+      webhookConfigs:
+        - url: http://alert-render.example-tenant.svc.cluster.local:8080/notify/critical
+          # A BACKSTOP ON THE SENDER'S SIDE. Without it a large group arrives
+          # whole, and the fallback would have to truncate it to fit a chat
+          # event. Truncating here is better: the renderer never sees the
+          # excess, and Alertmanager says how many it dropped.
+          maxAlerts: 50
+          sendResolved: true
+    - name: alert-render-warning
+      webhookConfigs:
+        - url: http://alert-render.example-tenant.svc.cluster.local:8080/notify/warning
+          maxAlerts: 50
+          sendResolved: true

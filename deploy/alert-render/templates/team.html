@@ -1,0 +1,10 @@
+{#-
+SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+-#}
+{%- for alert in notification.alerts -%}
+<b>{{ alert.labels.alertname | default("alert") }}</b>
+{{ alert.annotations.summary | default("no summary") }}
+({{ alert.state }}, severity {{ alert.labels.severity | default("none") }})
+{%- if not loop.last %}<br>{% endif -%}
+{%- endfor -%}

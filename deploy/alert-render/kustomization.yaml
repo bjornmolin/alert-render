@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# REPLACE: the tenant's own namespace. This is deployed BY the tenant, into the
+# tenant's namespace, on activation -- there is no Namespace object here
+# because a tenant's namespace already exists and is not this deployment's to
+# create.
+namespace: example-tenant
+
+resources:
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - alertmanagerconfig.yaml
+
+# GENERATED, SO THE NAME CARRIES A HASH OF THE CONTENTS. That is the whole
+# reason these are generators rather than plain ConfigMaps: a change to the
+# bindings or a template then changes the Deployment's pod spec, which rolls
+# the pods by itself. The alternative is a checksum annotation somebody has to
+# remember to update -- and the process reads both files once at startup, so a
+# change that did not roll the pods would simply not take effect.
+configMapGenerator:
+  - name: alert-render-bindings
+    files:
+      - bindings.yaml=bindings.example.yaml
+  - name: alert-render-templates
+    files:
+      - templates/team.html
+      - templates/team.txt
+
+# NOT A GENERATOR, AND NOT A ConfigMap. A room address is the entire credential
+# -- whoever holds it can post to that room -- so it is a Secret, created out of
+# band and merely referenced here. Putting it in this directory would publish it
+# into the tenant's git history.
+#
+# REPLACE: create it yourself, one key per binding:
+#   kubectl -n <tenant> create secret generic alert-render-rooms \
+#     --from-literal=team-room-url='https://hookshot.digg.safos.se/<room-uuid>'

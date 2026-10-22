@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# TWO PORTS, AND THE SEPARATION IS THE POINT. Only Alertmanager needs `inbound`
+# and only Prometheus needs `metrics`, so the NetworkPolicy can admit each from
+# one place. Serving both on one port is upstream webhook-proxy's gc-wdt: there
+# /metrics sits on the port tenants must reach, so any tenant can read every
+# other tenant's room names and delivery counts.
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-render
+spec:
+  selector:
+    app.kubernetes.io/name: alert-render
+  ports:
+    - name: inbound
+      port: 8080
+      targetPort: inbound
+    - name: metrics
+      port: 9090
+      targetPort: metrics

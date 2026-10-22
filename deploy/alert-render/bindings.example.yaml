@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# One binding per destination: the path Alertmanager posts to, the template that
+# renders it, and the KEY naming where the room's address is mounted.
+#
+# `room` IS A SECRET KEY, NEVER THE ADDRESS. This file is a ConfigMap in a
+# gitops repository; an address here would be published into git history and
+# into `kubectl get cm -o yaml` for anyone with read on the namespace. The
+# process refuses an http(s) value in this field for that reason.
+#
+# Each `listener` is written TWICE -- here, and as a webhook URL in
+# alertmanagerconfig.yaml. They must be the same string; nothing corrects a
+# mismatch, because a silent correction would make one of the two wrong while
+# the other worked.
+bindings:
+  - listener: /notify/critical
+    template: team
+    room: team-room-url
+
+  # Two bindings may name the same room: two severities, two templates, one
+  # place the team is looking. Only the listener has to be unique.
+  - listener: /notify/warning
+    template: team
+    room: team-room-url

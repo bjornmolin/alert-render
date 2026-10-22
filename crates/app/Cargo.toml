@@ -26,6 +26,8 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
 
 [dev-dependencies]
+serde_yaml_ng = "0.10"
+tokio-test = "0.4"
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 tempfile = "3"
 

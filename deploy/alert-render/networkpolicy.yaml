@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# Each port admitted from ONE place, which is the whole value of serving them
+# separately. Only Alertmanager needs `inbound`; only Prometheus needs
+# `metrics`. Collapsing them onto one port would make this policy unable to
+# express the difference -- ingress rules select by port, never by path.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: alert-render-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: alert-render
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        # REPLACE if your Alertmanager is elsewhere. In wallet-iac-k3s this is
+        # `monitoring`; on OpenShift user-workload monitoring it is
+        # `openshift-user-workload-monitoring`.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+# NO EGRESS RULE HERE, and that is measured rather than assumed. Verified
+# 2026-10-22: wallet-iac-prod's tenant module creates four NetworkPolicies and
+# every one of them is policyTypes: [Ingress] -- its docs/network.md says
+# "Egress is deliberately left unrestricted". So production needs nothing.
+#
+# wallet-iac-k3s IS STRICTER THAN PRODUCTION here, which is the opposite of the
+# usual direction: it adds default-deny egress with an in-cluster allowlist, so
+# a renderer there needs an explicit rule to reach an off-cluster chat server.
+# That rule is the platform's to add, not a tenant's.

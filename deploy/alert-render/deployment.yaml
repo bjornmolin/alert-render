@@ -28,6 +28,22 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
+        # FOUND BY RUNNING IT, 2026-10-22, in the dev cluster. Without fsGroup
+        # the kubelet writes the mounted Secret as root:root, and the image runs
+        # as 65532:65532 -- so `defaultMode: 0o440` is group-readable by a group
+        # the process is not in, and every delivery failed.
+        #
+        # The symptom was exactly what the error taxonomy promised and nothing
+        # more: a 500 from the listener, and
+        # `alert_render_delivery_total{outcome="unaddressable"}` on the replica
+        # that handled it -- a CONFIGURATION fault, not a network one, which is
+        # what pointed at the mount instead of at the network. It cost one
+        # metric scrape to diagnose rather than an afternoon, which is the whole
+        # argument for keeping `unaddressable` apart from `unreachable`.
+        #
+        # 65532 is the uid AND gid the Containerfile sets; crates/app/tests/
+        # manifests.rs asserts the two still agree.
+        fsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
       containers:

@@ -353,3 +353,46 @@ fn the_example_templates_render_a_notification() {
     assert!(message.text().contains('\n'), "{}", message.text());
     assert!(!message.text().contains("<br>"), "{}", message.text());
 }
+
+/// THE BUG THIS TEST EXISTS BECAUSE OF, found by running the thing in a
+/// cluster rather than by reading it.
+///
+/// The image runs as uid:gid 65532 and the room Secret is mounted `0o440`.
+/// Without `fsGroup` the kubelet writes that volume as `root:root`, so the
+/// mode makes it readable by group 0 -- a group the process is not in -- and
+/// EVERY delivery failed with `unaddressable`.
+///
+/// So the assertion is not merely that `fsGroup` is set: it is that the value
+/// AGREES WITH THE CONTAINERFILE. Both numbers are the same fact written in
+/// two files, which is the kind of pair that drifts.
+#[test]
+fn the_pod_runs_as_the_group_the_image_declares() {
+    let containerfile = include_str!("../../../Containerfile");
+    let declared = containerfile
+        .lines()
+        .find_map(|line| line.strip_prefix("USER "))
+        .expect("the Containerfile sets a USER");
+    let gid: u64 = declared
+        .split(':')
+        .nth(1)
+        .unwrap_or(declared)
+        .trim()
+        .parse()
+        .expect("USER names a numeric gid");
+
+    let deployment = deploy("deployment.yaml");
+    let security = &deployment["spec"]["template"]["spec"]["securityContext"];
+
+    assert_eq!(
+        security["fsGroup"].as_u64(),
+        Some(gid),
+        "the Deployment's fsGroup does not match the Containerfile's USER gid ({gid}). \
+         Without agreement the kubelet writes mounted Secrets to a group the \
+         process is not in, and every delivery fails as `unaddressable`."
+    );
+    assert_eq!(
+        security["runAsNonRoot"].as_bool(),
+        Some(true),
+        "runAsNonRoot was dropped"
+    );
+}

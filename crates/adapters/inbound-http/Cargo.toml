@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
 # SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
 [package]
-name = "alertmanager-payload"
+name = "inbound-http"
 version.workspace = true
 publish = false
 edition.workspace = true
@@ -10,8 +10,16 @@ license.workspace = true
 
 [dependencies]
 domain = { path = "../../domain" }
+application = { path = "../../application" }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
 serde_json = "1"
 thiserror = "2"
+tokio = { version = "1", features = ["net"] }
+tower = "0.5"
+
+[dev-dependencies]
+async-trait = "0.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "time"] }
 
 [lints]
 workspace = true

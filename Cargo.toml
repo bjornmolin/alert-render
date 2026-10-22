@@ -19,10 +19,12 @@ resolver = "3"
 members = [
     "crates/domain",
     "crates/application",
-    "crates/adapters/alertmanager-payload",
     "crates/adapters/http-rooms",
+    "crates/adapters/inbound-http",
+    "crates/adapters/metrics",
     "crates/adapters/minijinja-renderer",
     "crates/adapters/mounted-rooms",
+    "crates/adapters/sanitising-rooms",
     "crates/adapters/yaml-bindings",
     "crates/app",
     "crates/architecture",

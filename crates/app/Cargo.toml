@@ -15,6 +15,19 @@ path = "src/main.rs"
 [dependencies]
 domain = { path = "../domain" }
 application = { path = "../application" }
+http-rooms = { path = "../adapters/http-rooms" }
+inbound-http = { path = "../adapters/inbound-http" }
+metrics = { path = "../adapters/metrics" }
+minijinja-renderer = { path = "../adapters/minijinja-renderer" }
+mounted-rooms = { path = "../adapters/mounted-rooms" }
+sanitising-rooms = { path = "../adapters/sanitising-rooms" }
+yaml-bindings = { path = "../adapters/yaml-bindings" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+tempfile = "3"
 
 [lints]
 workspace = true

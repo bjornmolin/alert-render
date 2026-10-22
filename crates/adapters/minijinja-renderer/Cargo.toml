@@ -15,6 +15,7 @@ async-trait = "0.1"
 # `fuel` is not a default feature and is the reason this engine was chosen over
 # Tera: it bounds how long one template may run. See the module docs.
 minijinja = { version = "3", features = ["fuel"] }
+thiserror = "2"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }

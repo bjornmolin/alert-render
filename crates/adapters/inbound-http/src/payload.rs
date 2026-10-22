@@ -3,6 +3,14 @@
 
 //! Alertmanager's webhook body, mapped to a Notification.
 //!
+//! A MODULE AND NOT ITS OWN CRATE, which it briefly was (bead ar-1kx.10). The
+//! architecture test refused it: `inbound-http (Adapter) must not depend on
+//! alertmanager-payload (Adapter)`. The rule is right and the split was wrong --
+//! parsing a request body is what an inbound adapter DOES, so one needing the
+//! other means they are one adapter. The rule's own wording is about two
+//! adapters SHARING code, which would belong in the application; nothing here
+//! is shared.
+//!
 //! UNKNOWN FIELDS ARE ACCEPTED HERE, which is the exact opposite of the rule in
 //! `yaml-bindings`. The two crates sit next to each other and look like they
 //! should agree, so both say why they do not:

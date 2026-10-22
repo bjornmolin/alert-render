@@ -97,6 +97,66 @@ fn surface(notification: &Notification) -> minijinja::Value {
     }
 }
 
+/// Why the templates could not be read.
+#[derive(Debug, thiserror::Error)]
+pub enum TemplatesUnreadable {
+    /// The directory is not there, or cannot be listed.
+    #[error("the template directory {path} could not be read")]
+    Unreadable {
+        /// Where it was looked for.
+        path: std::path::PathBuf,
+    },
+}
+
+impl MinijinjaRenderer {
+    /// A renderer over every `.html` and `.txt` file in `directory`.
+    ///
+    /// READ ONCE AT STARTUP, like the Bindings and unlike a Room address:
+    /// templates change through gitops, so a change should roll the pods --
+    /// which a `ConfigMap` whose name carries a content hash gives for free.
+    ///
+    /// Other extensions are IGNORED rather than refused. A `ConfigMap` mount
+    /// carries `..data` symlinks and dotfiles of Kubernetes' own, and refusing
+    /// the directory because of them would mean refusing every real mount.
+    ///
+    /// # Errors
+    ///
+    /// [`TemplatesUnreadable`] if the directory cannot be listed.
+    pub fn holding_directory(
+        directory: impl AsRef<std::path::Path>,
+    ) -> Result<Self, TemplatesUnreadable> {
+        let directory = directory.as_ref();
+        let entries =
+            std::fs::read_dir(directory).map_err(|_| TemplatesUnreadable::Unreadable {
+                path: directory.to_path_buf(),
+            })?;
+
+        let mut sources = BTreeMap::new();
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            // CASE-SENSITIVE ON PURPOSE, against clippy's advice here. The
+            // suggestion is to compare the extension case-insensitively, and
+            // that would be WRONG: minijinja selects auto-escaping from the
+            // template name and its callback matches `.html` in lower case. A
+            // file called `team.HTML` accepted here would therefore be rendered
+            // with escaping OFF -- a silent hole in the one protection the html
+            // body has. Refusing to load it is the safe answer.
+            #[allow(
+                clippy::case_sensitive_file_extension_comparisons,
+                reason = "matching minijinja's own lower-case autoescape callback; see above"
+            )]
+            if !(name.ends_with(".html") || name.ends_with(".txt")) {
+                continue;
+            }
+            if let Ok(source) = std::fs::read_to_string(entry.path()) {
+                sources.insert(name, source);
+            }
+        }
+
+        Ok(Self::holding(sources))
+    }
+}
+
 #[async_trait]
 impl Renderer for MinijinjaRenderer {
     async fn render(

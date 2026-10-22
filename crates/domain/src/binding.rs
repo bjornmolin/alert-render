@@ -156,6 +156,15 @@ impl Bindings {
         Ok(Self(bindings))
     }
 
+    /// Every Binding, in the order they were declared.
+    ///
+    /// The inbound adapter needs this to build one route per Binding, which is
+    /// what makes a path with no Binding the server's own 404 rather than a
+    /// handler that has to guess.
+    pub fn iter(&self) -> impl Iterator<Item = &Binding> {
+        self.0.iter()
+    }
+
     /// The Binding for `path`, matched EXACTLY.
     ///
     /// Not by prefix, and not ignoring a trailing slash. `/notify/teamx` is a

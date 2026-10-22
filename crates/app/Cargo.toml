@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+[package]
+name = "app"
+version.workspace = true
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "alert-render"
+path = "src/main.rs"
+
+[dependencies]
+domain = { path = "../domain" }
+application = { path = "../application" }
+
+[lints]
+workspace = true

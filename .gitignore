@@ -1,0 +1,28 @@
+/target
+.DS_Store
+
+# ── Beads stays on this machine ─────────────────────────────────────────────
+#
+# The issue database is not published with the code, by decision (maintainer,
+# 2026-10-22). The Dolt database under .beads/ holds every bead body and close
+# reason written while building this, and those quote measured failures from
+# private clusters, upstream bead identifiers and internal hostnames. None of
+# that is secret, and none of it is anybody else's to receive either.
+#
+# bd's own .beads/.gitignore already excludes the database and the JSONL
+# backup, leaving config.yaml and metadata.json tracked. The whole directory is
+# excluded here instead, so the decision does not depend on a vendored ignore
+# file staying as it is.
+/.beads/
+*.gate.lock*
+
+# Everything else bd generates, for the same reason plus one more: the
+# SessionStart hook in .claude/settings.json runs `bd prime`, so committing it
+# would hand a fresh clone a hook that invokes a tool the cloner may not have.
+# `.claude/skills/` is NOT ignored -- those are the project's conventions and
+# REUSE.toml accounts for them.
+/.agents/
+/.codex/
+/.cursor/
+/AGENTS.md
+/.claude/settings.json

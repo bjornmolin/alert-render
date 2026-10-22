@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# The gate. `just verify` is what this repository calls green, and until this
+# file existed nothing enforced it -- the dependency-direction test, clippy and
+# the workspace tests all passed only as long as everyone remembered to run
+# them.
+#
+# TWO HALVES THAT COMPOSE TO `just verify`, deliberately split:
+#
+#   policy   diggsweden/forge-ci. Hygiene and security: secrets, SAST, licence
+#            and commit conventions. It checks everything ABOUT the change.
+#   check    our own. Whether the code actually works. forge-ci's quality stage
+#            is lint-only -- its three jobs are plan, quality stage and summary,
+#            with no build and no test for any project type -- so a cargo
+#            workspace that does not compile would pass it. Verified by reading
+#            the orchestrator rather than assumed (bead ar-kiw).
+#
+# PINNED TO A TAG'S FULL COMMIT SHA, not a moving ref. v0.91.0 is tagged but
+# v0.90.0 is the latest release, and the orchestrator's own
+# `forge-ci-binary-ref` and `runtime-image` defaults are v0.90.0 -- so pinning
+# here keeps the workflow and the tools it drives in step. Update deliberately,
+# in its own commit:
+#   v0.90.0 = 5f5bb1ee7ad706d7bca89695e485898204ef730c
+name: pull request
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    uses: diggsweden/forge-ci/.github/workflows/pullrequest-orchestrator.yml@5f5bb1ee7ad706d7bca89695e485898204ef730c # v0.90.0
+    # EXACTLY WHAT THE CALLED JOBS DECLARE, and no more. Its three jobs ask for
+    # `contents: read` and `actions: read`; none asks for `pull-requests` or
+    # `security-events`, and the summary job writes to the run rather than
+    # commenting on the PR. Granting the wider set a sibling repository uses
+    # would be granting it for nothing.
+    permissions:
+      contents: read
+      actions: read
+    with:
+      project-type: cargo
+      # Defaults, stated rather than inherited so a change to them is visible
+      # here: nanolinter is the engine, and secrets plus SAST are the lint floor
+      # that may not be waived.
+      lint-engine: nanolinter
+      required-lints: secrets,sast
+    # NOT PASSING CODE_SCANNING_TOKEN. The quality stage accepts it to upload
+    # SAST findings to GitHub code scanning; without it the findings are in the
+    # run's own output instead. Wire the secret when someone wants them in the
+    # Security tab -- `secrets: inherit` would hand this workflow every secret
+    # the repository has, which is a worse trade for one upload.
+
+  check:
+    # Correctness. `just check` is the same recipe run locally, so there is one
+    # definition of green rather than a CI copy that drifts from it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Toolchain from rust-toolchain.toml
+        run: |
+          set -euo pipefail
+          rustup show active-toolchain || rustup toolchain install
+          rustc --version && cargo --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+
+      # `cargo install` rather than a third-party setup action: it is one fewer
+      # supply-chain dependency to pin and audit, and rust-cache makes it free
+      # after the first run.
+      - name: Install just
+        run: cargo install just --locked --version 1.50.0
+
+      - name: just check
+        run: just check
+
+  architecture:
+    # The hexagon, called out as its own check so an architectural change shows
+    # up in the PR's check list rather than buried in the check job's log. It is
+    # also run by `just check`; the duplication is the point.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - name: Dependency direction and a dependency-free domain
+        run: cargo test -p architecture -- --nocapture

@@ -1,0 +1,20 @@
+version = 1
+SPDX-PackageName = "alert-render"
+SPDX-PackageSupplier = "Digg - Agency for Digital Government"
+SPDX-PackageDownloadLocation = "https://github.com/bjornmolin/alert-render"
+
+[[annotations]]
+path = ["Cargo.lock", ".gitignore", "rust-toolchain.toml"]
+SPDX-FileCopyrightText = "2026 Digg - Agency for Digital Government"
+SPDX-License-Identifier = "EUPL-1.2 OR GPL-3.0-or-later"
+
+# The skills under .claude/skills/ were first written for motrice/webhook-proxy
+# and are reused here with the same text, because that is where they were
+# proven. Copyright is Digg's and the licence is this project's: the copyright
+# holder reassigned both for this repository (maintainer, 2026-10-22), which is
+# a thing only they could do -- it is not a conclusion a tool should reach by
+# editing a header.
+[[annotations]]
+path = [".claude/skills/**"]
+SPDX-FileCopyrightText = "2026 Digg - Agency for Digital Government"
+SPDX-License-Identifier = "EUPL-1.2 OR GPL-3.0-or-later"

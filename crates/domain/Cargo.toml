@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+[package]
+name = "domain"
+version.workspace = true
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# EMPTY, AND IT STAYS EMPTY. A dependency here is a dependency for every test
+# in the system. crates/architecture asserts it.
+[dependencies]
+
+[lints]
+workspace = true

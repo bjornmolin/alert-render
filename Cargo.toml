@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# Hexagonal workspace. The dependency direction is enforced by a test, not by
+# convention: see crates/architecture/tests/boundaries.rs
+#
+#   domain       <- pure. zero dependencies. no I/O, no async, no frameworks.
+#   application  <- use cases + ports (traits). depends on domain only.
+#   adapters/*   <- implement ports. depend on application + domain. never on each other.
+#   app          <- composition root. the only crate allowed to wire adapters.
+#
+# The shape is lifted from motrice/webhook-proxy deliberately: that repository
+# proved it on the same problem domain and the same cluster, and a second shape
+# here would be a second thing to reason about. What is NOT lifted is its
+# outbox, its claim/report hand-off and its tenant agent — see the comment on
+# the composition root in the architecture test for why none of that exists.
+[workspace]
+resolver = "3"
+members = [
+    "crates/domain",
+    "crates/application",
+    "crates/adapters/mounted-rooms",
+    "crates/app",
+    "crates/architecture",
+]
+
+[workspace.package]
+# ONE VERSION FOR THE WHOLE WORKSPACE, and it lives HERE rather than in each
+# crate so that a release bump has exactly one line to substitute. webhook-proxy
+# learned this the hard way (its bead gc-50x): with the line absent a tag said
+# v0.1.0 while the service went on reporting 0.0.0 from /api-info for ever.
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+license = "EUPL-1.2 OR GPL-3.0-or-later"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# DELIBERATELY NOT HERE: unwrap_used, expect_used and panic. They were set on a
+# first pass and immediately failed the architecture test's own code, where
+# `.expect("a domain crate must exist")` is the correct thing to write -- a test
+# that cannot find the domain crate SHOULD abort loudly. Set at workspace level
+# those lints fire hardest in exactly the code where panicking is right, so they
+# would be suppressed per-site often enough to stop meaning anything. If
+# production code starts reaching for unwrap, that belongs in review or in a
+# narrower lint on the crate that has the problem.

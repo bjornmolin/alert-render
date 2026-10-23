@@ -17,6 +17,19 @@ artifacts:
     project-type: cargo
     config:
       build-mode: container-first
+    # NO analyzed-artifact LAYER, because container-first leaves nothing for it
+    # to analyse. That layer is syft scanning a built binary downloaded from the
+    # build stage -- and container-first has no build stage: the compile lives
+    # in the Containerfile, and the binary exists only inside the image. Asking
+    # for it failed the release with "No Rust binary found" (exit 66), which is
+    # the same shape as the Android case forge-ci's docs/sbom.md documents.
+    #
+    # The two that remain are the two that mean something here: `build` is the
+    # lockfile-derived CycloneDX from sbom-cargo.yml, and `analyzed-container`
+    # is syft over the pushed image -- the artefact we actually ship. Keeping
+    # analyzed-container is also what makes publish-container.yml scan and
+    # attest the image at all; it runs only if a source artifact asks for it.
+    sboms: build,analyzed-container
 
 containers:
   - name: alert-render

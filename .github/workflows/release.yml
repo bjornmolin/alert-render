@@ -54,6 +54,16 @@ jobs:
     with:
       branch: main
       forge-ci-binary-ref: v0.90.0
+      # ONLY AN ALLOWLISTED SIGNER MAY CUT A RELEASE. `.forge-ci/allowed_signers`
+      # names the key; this makes its ABSENCE fail the release rather than
+      # downgrade it to a warning, which is the half that a file alone does not
+      # buy. The engine default is false and diggsweden's shared template sets
+      # it true; this repository is in the second group.
+      #
+      # The verification itself is `git verify-tag` with
+      # gpg.ssh.allowedSignersFile, run by forge-ci -- so the same command
+      # verifies locally, and the key being a FIDO token changes nothing.
+      release.requireallowlistedsigner: true
       artifacts-config: .forge-ci/artifacts.yml
       changelog-creator: git-cliff
       release-publisher: github-cli

@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 Digg - Agency for Digital Government
+# SPDX-License-Identifier: EUPL-1.2 OR GPL-3.0-or-later
+#
+# WHO MAY CUT A RELEASE. forge-ci verifies the signature on the
+# `release-request/vX.Y.Z` tag against this file, in OpenSSH's allowed_signers
+# format (`man ssh-keygen`, ALLOWED SIGNERS). Until it existed, both releases
+# were annotated "any valid signature was accepted": the signature was checked
+# for validity and against nothing else. Bead ar-1kx.18.
+#
+# The public key travels with the repository on purpose -- it is both the
+# authorised set and the material the verification uses, so the two cannot
+# drift. Adding or removing a signer is a commit, and `git blame` is the audit
+# trail. That is the whole mechanism.
+#
+# NO `namespaces=` OPTION, deliberately: forge-ci's documented example omits it,
+# and an option that narrows the namespace can only turn a good signature into
+# a rejected one if the verifier names it differently. Add `valid-before=` when
+# a key is retired rather than deleting the line -- old tags stay verifiable.
+#
+# The key is a FIDO token (`sk-`) that requires a touch, so a release cannot be
+# cut by anything that merely holds a file.
+extern.bjorn.molin@digg.se sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAILz0bbDs14N8pzU8kxuaWv1BByd9T4RIahCKIbaZbGIsAAAAEXNzaDptb3RyaWNlLXRvdWNo bjorn molin, yubikey, touch required

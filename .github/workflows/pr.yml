@@ -16,11 +16,11 @@
 #            workspace that does not compile would pass it. Verified by reading
 #            the orchestrator rather than assumed (bead ar-kiw).
 #
-# PINNED TO A TAG'S FULL COMMIT SHA, not a moving ref. v0.91.0 is tagged but
-# v0.90.0 is the latest release, and the orchestrator's own
-# `forge-ci-binary-ref` and `runtime-image` defaults are v0.90.0 -- so pinning
-# here keeps the workflow and the tools it drives in step. Update deliberately,
-# in its own commit:
+# PINNED TO A TAG'S FULL COMMIT SHA, not a moving ref. forge-ci has since
+# released v0.91.0 through v0.91.10 (2026-10-22) and the pin stays at v0.90.0
+# anyway, because the only runtime images published at all are built from
+# 5f5bb1ee -- this tag's commit -- so pinning here keeps the workflow and the
+# container it runs inside in step. Update deliberately, in its own commit:
 #   v0.90.0 = 5f5bb1ee7ad706d7bca89695e485898204ef730c
 name: pull request
 
@@ -53,6 +53,14 @@ jobs:
       # that may not be waived.
       lint-engine: nanolinter
       required-lints: secrets,sast
+      # SAME UNPUBLISHED-IMAGE PROBLEM AS release.yml, and the reason this gate
+      # had never actually run: the PR orchestrator's `runtime-image` default is
+      # `:v0.90.0` too, which does not exist, so Setup dies pulling it before
+      # any check runs (bead ar-1kx.14). The digest is `:weekly`, built from
+      # 5f5bb1ee -- the commit pinned above. Remove it when forge-ci publishes
+      # release-tagged images. Only the base image: the lint stage runs in
+      # nanolinter's own image, and `check` and `architecture` below are ours.
+      runtime-image: ghcr.io/diggsweden/forge-ci-runtime-base@sha256:989c924513a83e95c0d487b4b6c6ee3599ce857333568c301d0d47e345e0b1ed # :weekly, rev 5f5bb1ee
     # NOT PASSING CODE_SCANNING_TOKEN. The quality stage accepts it to upload
     # SAST findings to GitHub code scanning; without it the findings are in the
     # run's own output instead. Wire the secret when someone wants them in the

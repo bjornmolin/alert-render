@@ -7,17 +7,20 @@
 # Cargo.lock.
 #
 # PINNED TO THE SAME v0.90.0 AS THE PULL-REQUEST GATE, and for the same reason:
-# v0.91.0 is tagged but v0.90.0 is the latest release, and the orchestrator's
-# own binary and runtime-image defaults are v0.90.0. Move both pins together, in
-# their own commit.
+# the only published runtime images are built from 5f5bb1ee, which is that
+# tag's commit. forge-ci released v0.91.0 through v0.91.10 on 2026-10-22; no
+# release line has runtime images yet. Move both pins together, in their own
+# commit.
 #   v0.90.0 = 5f5bb1ee7ad706d7bca89695e485898204ef730c
 #
-# SECRETS THIS NEEDS AND THE REPOSITORY DOES NOT HAVE YET. None of them can be
-# set by anyone but the maintainer, so the first release will fail on whichever
-# is missing rather than silently producing something unsigned:
+# THE SECRETS THIS NEEDS, set 2026-10-23. Only the maintainer can set them, and
+# a release fails on whichever is missing rather than silently producing
+# something unsigned. Their VALUES are still unproven: no run has got far enough
+# to use one (see bead ar-1kx.14).
 #   RELEASE_TOKEN            push and release creation
 #   RELEASE_GPG_*            signs the release commit and tag
-#   CODE_SCANNING_TOKEN      optional; uploads the container scan to Code Scanning
+#   CODE_SCANNING_TOKEN      optional, not set; the container scan then stays in
+#                            the run's own output instead of Code Scanning
 name: release
 
 on:
@@ -54,3 +57,26 @@ jobs:
       artifacts-config: .forge-ci/artifacts.yml
       changelog-creator: git-cliff
       release-publisher: github-cli
+      # THE v0.90.0 RUNTIME IMAGES WERE NEVER PUBLISHED, so the orchestrator's
+      # own defaults -- `:v0.90.0`, still the default at v0.91.10 -- do not
+      # resolve, and the first release died pulling one before it reached a
+      # single release step (`manifest unknown`, bead ar-1kx.14). forge-ci's
+      # docs/runtime-images.md says it outright: those tags are prospective.
+      #
+      # `:weekly` is the same CODE: all three images carry
+      # org.opencontainers.image.revision = 5f5bb1ee, the commit this workflow
+      # pins. So this is a reachable tag for the pinned version, not a version
+      # bump. Digests rather than `:weekly`, because weekly is a moving alias
+      # that the next scheduled build replaces.
+      #
+      # REMOVE ALL THREE once forge-ci publishes release-tagged images, in the
+      # same commit that moves the `@5f5bb1ee` pins.
+      #
+      # Three and no more, per forge-ci's workflow-to-image table: base plans,
+      # summarises, writes the changelog and validates prerequisites; full
+      # creates the release and aggregates the SBOM; rust-stable runs
+      # sbom-cargo. publish-container builds on the host with Buildah and uses
+      # no job container at all.
+      runtime-image: ghcr.io/diggsweden/forge-ci-runtime-base@sha256:989c924513a83e95c0d487b4b6c6ee3599ce857333568c301d0d47e345e0b1ed # :weekly, rev 5f5bb1ee
+      runtime-image-full: ghcr.io/diggsweden/forge-ci-runtime@sha256:dbabe0ae940a8de6b008a27b6b1abb00365c8483e8ef256ac82d2c650d38d150 # :weekly, rev 5f5bb1ee
+      runtime-image-rust: ghcr.io/diggsweden/forge-ci-runtime-rust-stable@sha256:7860c47400fe752e49de5d3cd85ff267f1c2123038d4f13b68c1861613b9cb39 # :weekly, rev 5f5bb1ee

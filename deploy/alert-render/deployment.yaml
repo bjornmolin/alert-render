@@ -48,11 +48,15 @@ spec:
           type: RuntimeDefault
       containers:
         - name: alert-render
-          # REPLACE: the image does not exist yet (bead ar-1kx.11). There is no
-          # Containerfile and no release workflow, so this names nothing today.
-          # Pin by digest when it does, not by tag: wallet-iac-k3s has already
-          # paid for a `:main` that was never published.
-          image: REPLACE-ME@sha256:REPLACE-ME
+          # v0.1.1, BY DIGEST AND NOT BY TAG. `:v0.1.1` and `:release` both
+          # point here today and neither is a promise; wallet-iac-k3s has
+          # already paid for a `:main` that was never published. The digest is
+          # the only form that answers "which code is running" in a year.
+          #
+          # Both linux/amd64 and linux/arm64 are in this index, which is what
+          # lets the same line serve OpenShift and a Lima arm64 dev cluster.
+          # crates/app/tests/manifests.rs asserts the shape of this reference.
+          image: ghcr.io/bjornmolin/alert-render@sha256:d17800dcedf6963d1fd85d6dcd9db1c44837d1613c0bbd9eb5ca0458e14b6764
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

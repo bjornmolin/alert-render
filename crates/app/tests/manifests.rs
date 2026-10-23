@@ -396,3 +396,37 @@ fn the_pod_runs_as_the_group_the_image_declares() {
         "runAsNonRoot was dropped"
     );
 }
+
+/// A TAG IS NOT AN ANSWER to "which code is running". `wallet-iac-k3s` has
+/// already paid for the alternative once: a `:main` that was never published,
+/// and an hour spent on a `denied` that turned out to be a stale credential
+/// rather than a missing image.
+///
+/// So this asserts the shape rather than any particular release: a GHCR
+/// reference to this image, pinned by a full 64-character digest. The marker
+/// the reference manifests shipped with (`REPLACE-ME@sha256:REPLACE-ME`) fails
+/// it, which is the point -- a tenant who copies the set and forgets to
+/// substitute should not find out from a pod that cannot pull.
+#[test]
+fn the_deployment_pins_the_image_by_digest() {
+    let deployment = deploy("deployment.yaml");
+    let image = container(&deployment)["image"]
+        .as_str()
+        .expect("the container names an image");
+
+    let (repository, digest) = image
+        .split_once("@sha256:")
+        .unwrap_or_else(|| panic!("{image} is not pinned by digest"));
+
+    assert!(
+        repository.starts_with("ghcr.io/") && repository.ends_with("/alert-render"),
+        "{repository} is not this project's image in GHCR"
+    );
+    assert!(
+        digest.len() == 64
+            && digest
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        "`{digest}` is not a sha256 digest -- a placeholder or a tag cannot say what is running"
+    );
+}

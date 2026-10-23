@@ -35,7 +35,7 @@ members = [
 # crate so that a release bump has exactly one line to substitute. webhook-proxy
 # learned this the hard way (its bead gc-50x): with the line absent a tag said
 # v0.1.0 while the service went on reporting 0.0.0 from /api-info for ever.
-version = "0.0.0"
+version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
 license = "EUPL-1.2 OR GPL-3.0-or-later"

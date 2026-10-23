@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "app"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "axum",
@@ -25,7 +25,7 @@ dependencies = [
 
 [[package]]
 name = "application"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "domain",
@@ -35,7 +35,7 @@ dependencies = [
 
 [[package]]
 name = "architecture"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "serde_json",
 ]
@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "domain"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "equivalent"
@@ -330,7 +330,7 @@ dependencies = [
 
 [[package]]
 name = "http-rooms"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "async-trait",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "inbound-http"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "async-trait",
@@ -608,7 +608,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "metrics"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "async-trait",
@@ -632,7 +632,7 @@ checksum = "0032a2738ba16d9a8822e4eb2833faeed5c41d767633ea753f33b6becd58cbfc"
 
 [[package]]
 name = "minijinja-renderer"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "async-trait",
@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "mounted-rooms"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "async-trait",
@@ -917,7 +917,7 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "sanitising-rooms"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "application",
  "async-trait",
@@ -1495,7 +1495,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "yaml-bindings"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "domain",
  "serde",
